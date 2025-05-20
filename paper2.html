@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>線上考卷-Age&Viewing_Habits</title>
+  <style>
+    body { max-width: 800px; margin: 0 auto; font-family: sans-serif; padding: 1rem; }
+    h1 { text-align: center; }
+    .field { margin-bottom: 1rem; }
+    label { display: inline-block; width: 80px; font-weight: bold; }
+    span, p { display: inline-block; width: calc(100% - 90px); margin: 0; }
+    .status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; }
+	textarea { height: 800px; width: 600px}
+  </style>
+</head>
+<body>
+  <h1>Age and Viewing Habits 考卷</h1>
+
+  <div class="field">
+    <label for="cls">班級：</label>
+    <select id="cls">
+      <option value="">請選擇班級</option>
+      <option value="financial">financial</option>
+      <option value="economic">economic</option>
+	  <option value="other">other</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="name">姓名：</label>
+    <input type="text" id="name" placeholder="請填寫姓名">
+  </div>
+  <div class="field">
+    <label for="sid">學號：</label>
+    <input type="text" id="sid" placeholder="請填寫學號" pattern="\d+">
+  </div>
+
+  <hr>
+
+  <div class="field">
+    <label>作答區：</label></br></br>
+    <textarea id="ans1" placeholder="請在此作答"></textarea>
+  </div>
+
+  <div style="text-align:center; margin-top:2rem;">
+    <button id="downloadExamBtn" disabled>下載考卷（含答案）</button>
+  </div>
+  <div class="status" id="status">尚未儲存</div>
+
+  <script>
+    const examId = document.title.replace(/[^\w]/g, '_');
+    const clsInp = document.getElementById('cls');
+    const nameInp = document.getElementById('name');
+    const sidInp = document.getElementById('sid');
+    const ansInp = document.getElementById('ans1');
+    const downloadBtn = document.getElementById('downloadExamBtn');
+    const status = document.getElementById('status');
+
+    function metaValid() {
+      return clsInp.value && nameInp.value && /^\d+$/.test(sidInp.value);
+    }
+
+    function autoSave(e) {
+      localStorage.setItem(`${examId}_${e.target.id}`, e.target.value);
+      if (metaValid()) {
+        downloadBtn.disabled = false;
+        status.textContent = '已儲存於 LocalStorage (' + new Date().toLocaleTimeString() + ')';
+      } else {
+        downloadBtn.disabled = true;
+        status.textContent = '請填寫班級／姓名／學號，才可下載';
+      }
+    }
+
+    [clsInp, nameInp, sidInp, ansInp].forEach(el => {
+      const saved = localStorage.getItem(`${examId}_${el.id}`);
+      if (saved) el.value = saved;
+      el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', autoSave);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const cls = clsInp.value;
+      const name = nameInp.value;
+      const sid = sidInp.value;
+      const ans = ansInp.value.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      const staticHtml = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Age and Viewing Habits 考卷</title>
+  <style>
+    body { max-width: 800px; margin: 0 auto; font-family: sans-serif; padding: 1rem; }
+    h1 { text-align: center; }
+    .field { margin-bottom: 1rem; }
+    label { display: inline-block; width: 80px; font-weight: bold; }
+    span, p { display: inline-block; width: calc(100% - 90px); margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>Age and Viewing Habits 考卷</h1>
+  <div class="field"><label>班級：</label><span>${cls}</span></div>
+  <div class="field"><label>姓名：</label><span>${name}</span></div>
+  <div class="field"><label>學號：</label><span>${sid}</span></div>
+  <hr>
+  <div class="field"><label>作答區：</label><p>${ans}</p></div>
+</body>
+</html>`;
+      const blob = new Blob([staticHtml], { type: 'text/html' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${cls}_${sid}_${name}.html`;
+      link.click();
+    });
+  </script>
+</body>
+</html>
